@@ -37,3 +37,7 @@ xTaskCreatePinnedToCore(
 *The loop() is empty because the FreeRTOS scheduler will run the task. However, it is possible to add code to the loop() to run any other commands you want.*
 
 `vTaskSuspend` and `vTaskResume` are self-explanatory
+
+There is a function that you can call inside your task to determine the stack usage: the `uxTaskGetStackHighWaterMark()` function. That function determines the allocated stack size that is not being used.
+
+The heap is a shared memory pool in the ESP32’s SRAM, used for dynamic memory allocation, including task stacks, buffers, and other runtime data allocated by FreeRTOS or the Arduino core. We can call the `xPortGetFreeHeapSize()` function in our code to determine the free heap.
