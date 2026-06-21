@@ -35,3 +35,5 @@ xTaskCreatePinnedToCore(
 `Stack Size` The task stack size is the amount of memory allocated for the task to store its variables, function calls, and temporary data while it runs, ensuring it has enough space to operate without crashing the ESP32.
 
 *The loop() is empty because the FreeRTOS scheduler will run the task. However, it is possible to add code to the loop() to run any other commands you want.*
+
+`vTaskSuspend` and `vTaskResume` are self-explanatory
