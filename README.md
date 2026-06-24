@@ -1,6 +1,6 @@
 # FreeRTOS-USING-ESP32
 ISA VESIT SUMMER BOOTCAMP 26-27
-
+## Fundamentals
 `TaskHandle_t` is a variable that points a FreeRTOS task , allowing to control.
 
 `void setup()` is a function pre-defined use to tell the microcontroller what the the things that will be used from microcontroller like **GPIO Pins,Communication Protocols**
@@ -10,6 +10,12 @@ ISA VESIT SUMMER BOOTCAMP 26-27
 `pinMode`(GPIO_NUMBER,MODE[**INPUT/OUTPUT** ]) is a function used in `void setup()` for initialization of the **GPIO** Pin of the board
 
 `digitalWrite` (GPIO_NUMBER, VALUE( **HIGH/LOW** )) is a function used to tell the gpio what it needs to do
+
+`analogRead( GPIO_NUMBER)` is used to read analog values from the pin 
+
+` ledcAttach(LED_PIN, PWM_FREQ, PWM_RESOLUTION)` use for initialization of pwm in esp32 boards
+
+`ledcWrite(LED_PIN, brightness)` used to write. similar to digitalWrite
 
 `Serial.begin`(*baud_rate*) is pre-defined function to initialze communication between host and slave(PC AND ESP32)
 
@@ -38,6 +44,27 @@ xTaskCreatePinnedToCore(
 
 `vTaskSuspend` and `vTaskResume` are self-explanatory
 
+## Heap Memory
+
 There is a function that you can call inside your task to determine the stack usage: the `uxTaskGetStackHighWaterMark()` function. That function determines the allocated stack size that is not being used.
 
 The heap is a shared memory pool in the ESP32’s SRAM, used for dynamic memory allocation, including task stacks, buffers, and other runtime data allocated by FreeRTOS or the Arduino core. We can call the `xPortGetFreeHeapSize()` function in our code to determine the free heap.
+
+## Queue
+Use the `xQueueCreate(size, item_size)` to create a queue—`size` corresponds to the number of items that can be on the queue and `item_size` is the bytes size of heap allocated for each item on the queue.
+
+To send data to a queue use the `xQueueSend()` to add data to the queue. Or use `xQueueSendFromISR()` if sending the data from an ISR (interrupt service routine).
+
+The `xQueueReceive()` function reads data from the queue, if available.
+
+## Semaphores Basic Functions
+To create a binary semaphore, use the` xSemaphoreCreateBinary()` function. It returns a `SemaphoreHandle_t` handle if successful, or NULL if the creation fails.
+
+To create a counting semaphore, use the `xSemaphoreCreateCounting()` function. It returns a `SemaphoreHandle_t` handle if successful, or NULL if the creation fails. Pass as an argument the maximum count.
+
+Use the `xSemaphoreTake(semaphore, timeout)` function in a task to wait for or take a semaphore. For a binary semaphore, it blocks until the semaphore is available (state 1), setting it to 0 when taken.
+
+For a counting semaphore, it decrements the count if greater than 0, or blocks if the count is 0. The timeout parameter specifies how long to wait (in ticks); `portMAX_DELAY` means wait indefinitely. This means the task will be blocked until there’s a semaphore value to take.
+
+To give a semaphore use the `xSemaphoreGive()` function if inside a task, or `xSemaphoreGiveFromISR()` if used in ISRs (interrupt service routine functions).
+
