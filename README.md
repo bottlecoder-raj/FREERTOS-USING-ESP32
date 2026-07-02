@@ -68,3 +68,30 @@ For a counting semaphore, it decrements the count if greater than 0, or blocks i
 
 To give a semaphore use the `xSemaphoreGive()` function if inside a task, or `xSemaphoreGiveFromISR()` if used in ISRs (interrupt service routine functions).
 
+## Timer
+To create a timer, you use the `xTimerCreate()` function and pass the following parameters as arguments in this order:
+```
+timer name
+period
+autoReload (pdTRUE for periodic timer, or pdFALSE for one-shot timer)
+timerID (a user-defined value passed to the callback)
+callback function
+
+xTimerCreate(
+    "BlinkTimer",                   // Timer name
+    1000 / portTICK_PERIOD_MS,      // 1s period
+    pdTRUE,                         // Auto-reload (periodic timer)
+    NULL,                           // Timer ID
+    BlinkCallback                   // Callback function
+);
+```
+
+To start a timer use `xTimerStart(timer, blockTime)`. The first argument is the timer handler, and the second argument is the number of seconds to wait before starting the timer.
+
+To stop a running timer, you just need to call `xTimerStop(timer, blockTime)`. The arguments are the same as the previous function.
+
+o reset a timer, which means restarting a timer’s countdown, even if it is already running, call `xTimerReset(timer, blockTime)`. The arguments are the same as the previous functions.
+
+If you want to start a timer from an ISR (interrupt service routine function), you should call `xTimerStartFromISR(timer, &higherPriorityTaskWoken).`
+
+`higherPriorityTaskWoken` can be `pdTRUE` or `pdFALSE`. Set to `pdTRUE` if the task is of higher priority and we should switch to it immediately. In this case, we should call `portYIELD_FROM_ISR()` from the ISR to switch to that task immediately for real-time responsiveness.
