@@ -1,6 +1,6 @@
 
-#define LED1_PIN 2
-#define LED2_PIN 4
+#define LED1_PIN 25
+#define LED2_PIN 19
 
 TaskHandle_t Task1Handle = NULL;
 TaskHandle_t Task2Handle = NULL;

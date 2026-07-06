@@ -1,6 +1,6 @@
 
-#define LED1_PIN 2
-#define BUTTON_PIN 23
+#define LED1_PIN 19
+#define BUTTON_PIN 25
 
 // Task handle
 TaskHandle_t BlinkTaskHandle = NULL;
