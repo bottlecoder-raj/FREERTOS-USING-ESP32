@@ -1,5 +1,5 @@
-#define POT_PIN 15 
-#define LED_PIN 2   
+#define POT_PIN 33
+#define LED_PIN 15   
 #define PWM_FREQ 5000
 #define PWM_RESOLUTION 12  // 12-bit (0–4095)
 #define QUEUE_SIZE 5

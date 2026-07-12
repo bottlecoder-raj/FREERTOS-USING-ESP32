@@ -1,6 +1,6 @@
-#define BUTTON_PIN 23
-#define LED1_PIN 2   // Toggled LED
-#define LED2_PIN 4   // Blinking LED
+#define BUTTON_PIN 25
+#define LED1_PIN 18   // Toggled LED
+#define LED2_PIN 19   // Blinking LED
 
 #define DEBOUNCE_DELAY 200
 
