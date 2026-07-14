@@ -7,7 +7,7 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
 }
 
-//millies() code
+//millis() code
 // void loop() {
 //     if(millis() - current_time >= 1000){
 //       current_time = millis();
