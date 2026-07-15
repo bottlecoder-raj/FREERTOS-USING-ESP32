@@ -1,0 +1,216 @@
+==================== INITIAL STATE ====================
+
+MASTER
+- Waiting for Start Button
+- Buzzer OFF
+
+SLAVES
+- Buttons Disabled
+- LED OFF
+- Buzzer OFF
+
+=======================================================
+
+Speaker asks the question.
+
+↓
+
+MASTER START BUTTON pressed
+
+↓
+
+Master beeps 3 times
+(Beep... Beep... Beep...)
+
+↓
+
+Master broadcasts GO message to all slaves
+
+↓
+
+All slaves receive GO
+
+↓
+
+Each slave:
+- Enables its button
+- Waits for participant to press
+
+=======================================================
+
+Player 3 presses first
+
+↓
+
+Slave 3 sends
+
+PLAYER_ID = 3
+
+to Master using ESP-NOW
+
+↓
+
+Master receives the packet
+
+↓
+
+Is this the FIRST packet?
+
+YES
+
+↓
+
+Save Winner = Player 3
+
+↓
+
+Master beeps once
+(Indicates a valid buzz has been accepted)
+
+↓
+
+Master broadcasts
+
+LOCK
+Winner = Player 3
+
+↓
+
+All slaves receive LOCK
+
+↓
+
+Player 3
+- Starts blinking LED
+- Ignores further button presses
+
+Players 1,2,4,5
+- Disable their buttons
+- LED OFF
+- Wait for RESET
+
+=======================================================
+
+Quiz Master asks Player 3 to answer.
+
+↓
+
+After answer is completed
+
+↓
+
+Master presses NEXT button
+
+↓
+
+Master broadcasts RESET
+
+↓
+
+All slaves receive RESET
+
+↓
+
+Winner LED OFF
+
+↓
+
+All buttons Disabled
+
+↓
+
+System returns to WAIT state
+
+↓
+
+Speaker asks next question
+
+↓
+
+Press START again
+
+↓
+
+Repeat
+
+=======================================================
+
+
+DESCISION LOGIC
+START BUTTON
+        │
+        ▼
+3 Beeps
+        │
+        ▼
+Broadcast GO
+        │
+        ▼
+Enable All Players
+        │
+        ▼
+First Packet Received?
+        │
+       YES
+        │
+        ▼
+Save Winner
+        │
+        ▼
+Beep Once
+        │
+        ▼
+Broadcast LOCK
+        │
+        ▼
+Winner LED Blinks
+Others Locked
+        │
+        ▼
+NEXT Button Pressed
+        │
+        ▼
+Broadcast RESET
+        │
+        ▼
+All LEDs OFF
+Buttons Disabled
+        │
+        ▼
+WAIT FOR NEXT QUESTION
+
+
+FreeRTOS LOGIC
+START Button ISR
+        │
+        ▼
+Start Semaphore
+        │
+        ▼
+Quiz Task
+        │
+        ├── Beep 3 Times
+        ├── Broadcast GO
+        └── Wait for Queue
+
+ESP-NOW Receive Callback
+        │
+        ▼
+Queue (Player ID)
+        │
+        ▼
+Quiz Task
+        │
+        ├── First Player Wins
+        ├── Beep Once
+        └── Broadcast LOCK
+
+NEXT Button ISR
+        │
+        ▼
+Reset Semaphore
+        │
+        ▼
+Quiz Task
+        │
+        └── Broadcast RESET
