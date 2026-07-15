@@ -22,17 +22,17 @@ void AlarmTask(void *pvParameters)
 
     if (alertState)
     {
-      digitalWrite(RED_LED, HIGH);
-      digitalWrite(GREEN_LED, LOW);
-      digitalWrite(BUZZER, HIGH);
+      digitalWrite(RED_LED, LOW);
+      digitalWrite(GREEN_LED, HIGH);
+      digitalWrite(BUZZER, LOW);
 
       Serial.println("ALERT MODE");
     }
     else
     {
-      digitalWrite(RED_LED, LOW);
-      digitalWrite(GREEN_LED, HIGH);
-      digitalWrite(BUZZER, LOW);
+      digitalWrite(RED_LED, HIGH);
+      digitalWrite(GREEN_LED, LOW);
+      digitalWrite(BUZZER, HIGH);
 
       Serial.println("SAFE MODE");
     }

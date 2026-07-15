@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
 // ---------------- Pins ----------------
-#define IR_PIN      25
-#define POT_PIN     34
-#define RED_LED     18
+#define IR_PIN      32
+#define POT_PIN     33
+#define RED_LED     25
 #define GREEN_LED   19
 #define BUZZER      23
 
@@ -20,9 +20,9 @@ int alarmDuration = 2000;
 //--------------------------------------------------
 void timerCallback(TimerHandle_t xTimer)
 {
-    digitalWrite(RED_LED, LOW);
-    digitalWrite(GREEN_LED, HIGH);
-    digitalWrite(BUZZER, LOW);
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(GREEN_LED, LOW);
+    digitalWrite(BUZZER, HIGH);
 
     Serial.println("Alarm OFF");
 }
@@ -78,8 +78,8 @@ void AlarmTask(void *pvParameters)
             Serial.print("Intruder! Alarm Duration: ");
             Serial.println(alarmDuration);
 
-            digitalWrite(GREEN_LED, LOW);
-            digitalWrite(RED_LED, HIGH);
+            digitalWrite(GREEN_LED, HIGH);
+            digitalWrite(RED_LED, LOW);
             digitalWrite(BUZZER, HIGH);
 
             // Restart timer with new duration
@@ -103,7 +103,7 @@ void setup()
     pinMode(GREEN_LED, OUTPUT);
     pinMode(BUZZER, OUTPUT);
 
-    digitalWrite(GREEN_LED, HIGH);
+    digitalWrite(GREEN_LED, LOW);
 
     // Queue stores one integer
     potQueue = xQueueCreate(1, sizeof(int));

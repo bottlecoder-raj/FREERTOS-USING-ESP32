@@ -53,7 +53,7 @@ void blinkTask(void *pvParameters)
         }
         else
         {
-            digitalWrite(LED_PIN, LOW);
+            digitalWrite(LED_PIN, HIGH);
             vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
