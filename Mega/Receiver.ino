@@ -2,15 +2,15 @@
 #include <esp_now.h>
 
 //---------------- Pins ----------------
-#define BUTTON_PIN   18
+#define BUTTON_PIN   25
 #define LED_PIN      19
-#define BUZZER_PIN   23
+#define BUZZER_PIN   5
 
 // Change this for every board
 #define PLAYER_ID    1
 
 // Master's MAC Address
-uint8_t masterMAC[] = {0x24,0x6F,0x28,0xAA,0xBB,0xCC};
+uint8_t masterMAC[] = {0X8C,0X4B,0X14,0X4B,0X2E,0X44};
 
 //--------------------------------------
 
@@ -140,7 +140,8 @@ void setup()
                     FALLING);
 
     WiFi.mode(WIFI_STA);
-
+    delay(1000);
+  Serial.println(WiFi.macAddress());
     esp_now_init();
 
     esp_now_register_recv_cb(OnDataRecv);

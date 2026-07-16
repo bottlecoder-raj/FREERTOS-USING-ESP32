@@ -4,7 +4,11 @@
 //----------------------- Pins -----------------------
 #define START_BTN  18
 #define NEXT_BTN   19
-#define BUZZER     23
+#define BUZZER     25
+#define DEBOUNCE_DELAY 300  // 300ms debounce delay
+
+volatile uint32_t lastStartTime = 0;
+volatile uint32_t lastNextTime = 0;
 
 //--------------------- Message ----------------------
 typedef enum
@@ -21,7 +25,6 @@ typedef struct
   uint8_t playerID;
 } Packet;
 
-Packet txPacket;
 Packet rxPacket;
 
 //--------------- FreeRTOS Objects -------------------
@@ -34,22 +37,23 @@ bool gameStarted = false;
 bool winnerDeclared = false;
 uint8_t winnerID = 0;
 
-//----------------------------------------------------
-// Replace with your broadcast peer or send individually
-//----------------------------------------------------
-uint8_t player1[] = {...};
-uint8_t player2[] = {...};
-uint8_t player3[] = {...};
-uint8_t player4[] = {...};
-uint8_t player5[] = {...};
+//------------------ Player MACs ---------------------
+// Replace these with your actual MAC addresses
+uint8_t player1[] = {0x8C, 0x4B, 0x14, 0x4B, 0x18, 0xB0};
+uint8_t player2[] = {0xD4, 0x8A, 0xFC, 0xD0, 0x76, 0x4C};
+uint8_t player3[] = {0xBC, 0x4B, 0x14, 0x47, 0xBD, 0x48};
+uint8_t player4[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x03};
+uint8_t player5[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x04};
+uint8_t player6[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x05};
+
 //----------------------------------------------------
 void beep(int times)
 {
-  for(int i=0;i<times;i++)
+  for (int i = 0; i < times; i++)
   {
-    digitalWrite(BUZZER,HIGH);
+    digitalWrite(BUZZER, HIGH);
     vTaskDelay(pdMS_TO_TICKS(200));
-    digitalWrite(BUZZER,LOW);
+    digitalWrite(BUZZER, LOW);
     vTaskDelay(pdMS_TO_TICKS(200));
   }
 }
@@ -57,31 +61,50 @@ void beep(int times)
 //----------------------------------------------------
 void broadcast(Packet pkt)
 {
-    esp_now_send(player1, (uint8_t*)&pkt, sizeof(pkt));
-    esp_now_send(player2, (uint8_t*)&pkt, sizeof(pkt));
-    esp_now_send(player3, (uint8_t*)&pkt, sizeof(pkt));
-    esp_now_send(player4, (uint8_t*)&pkt, sizeof(pkt));
-    esp_now_send(player5, (uint8_t*)&pkt, sizeof(pkt));
+  esp_now_send(player1, (uint8_t *)&pkt, sizeof(pkt));
+  esp_now_send(player2, (uint8_t *)&pkt, sizeof(pkt));
+  esp_now_send(player3, (uint8_t *)&pkt, sizeof(pkt));
+  esp_now_send(player4, (uint8_t *)&pkt, sizeof(pkt));
+  esp_now_send(player5, (uint8_t *)&pkt, sizeof(pkt));
+  esp_now_send(player6, (uint8_t *)&pkt, sizeof(pkt));
+}
+
+//----------------------------------------------------
+void sendPacket(MessageType type, uint8_t playerID)
+{
+  Packet pkt;
+  pkt.type = type;
+  pkt.playerID = playerID;
+
+  broadcast(pkt);
 }
 
 //----------------------------------------------------
 void IRAM_ATTR startISR()
 {
-  BaseType_t hpTask = pdFALSE;
-
-  xSemaphoreGiveFromISR(startSemaphore,&hpTask);
-
-  portYIELD_FROM_ISR(hpTask);
+  uint32_t currentTime = millis();
+  // Only trigger if debounce delay has passed
+  if (currentTime - lastStartTime > DEBOUNCE_DELAY)
+  {
+    BaseType_t hpTask = pdFALSE;
+    xSemaphoreGiveFromISR(startSemaphore, &hpTask);
+    lastStartTime = currentTime;
+    portYIELD_FROM_ISR(hpTask);
+  }
 }
 
 //----------------------------------------------------
 void IRAM_ATTR nextISR()
 {
-  BaseType_t hpTask = pdFALSE;
-
-  xSemaphoreGiveFromISR(nextSemaphore,&hpTask);
-
-  portYIELD_FROM_ISR(hpTask);
+  uint32_t currentTime = millis();
+  // Only trigger if debounce delay has passed
+  if (currentTime - lastNextTime > DEBOUNCE_DELAY)
+  {
+    BaseType_t hpTask = pdFALSE;
+    xSemaphoreGiveFromISR(nextSemaphore, &hpTask);
+    lastNextTime = currentTime;
+    portYIELD_FROM_ISR(hpTask);
+  }
 }
 
 //----------------------------------------------------
@@ -89,13 +112,22 @@ void OnDataRecv(const esp_now_recv_info_t *info,
                 const uint8_t *incomingData,
                 int len)
 {
-  memcpy(&rxPacket,incomingData,sizeof(rxPacket));
+  if (len != sizeof(Packet))
+    return;
 
-  if(gameStarted &&
-     !winnerDeclared &&
-     rxPacket.type==BUZZ)
+  memcpy(&rxPacket, incomingData, sizeof(Packet));
+
+  if (gameStarted &&
+      !winnerDeclared &&
+      rxPacket.type == BUZZ)
   {
-      xQueueSend(playerQueue,&rxPacket.playerID,0);
+    BaseType_t hpTask = pdFALSE;
+
+    xQueueSendFromISR(playerQueue,
+                      &rxPacket.playerID,
+                      &hpTask);
+
+    portYIELD_FROM_ISR(hpTask);
   }
 }
 
@@ -103,45 +135,74 @@ void OnDataRecv(const esp_now_recv_info_t *info,
 void QuizTask(void *pvParameters)
 {
   uint8_t player;
+  uint8_t dummy;
 
-  while(1)
+  while (1)
   {
-      Serial.println("\nWaiting for START...");
+    // STEP 1: Wait for START button only
+    Serial.println("\n=== Waiting for START button ===");
+    xSemaphoreTake(startSemaphore, portMAX_DELAY);
 
-      xSemaphoreTake(startSemaphore,portMAX_DELAY);
+    // Clear old queue entries
+    while (xQueueReceive(playerQueue, &dummy, 0) == pdTRUE);
 
-      Serial.println("Question Started");
+    Serial.println("START button pressed - Question Started");
 
-      beep(3);
+    beep(3);
 
-      gameStarted = true;
-      winnerDeclared = false;
+    // Set game state flags
+    gameStarted = true;
+    winnerDeclared = false;
 
-      sendPacket(GO,0);
+    // STEP 2: Send GO only after START button
+    sendPacket(GO, 0);
+    Serial.println("GO Sent to all players");
 
-      Serial.println("GO Sent");
+    // Wait for player response
+    xQueueReceive(playerQueue, &player, portMAX_DELAY);
 
-      xQueueReceive(playerQueue,&player,portMAX_DELAY);
+    winnerID = player;
+    winnerDeclared = true;
+    gameStarted = false;
 
-      winnerID = player;
+    Serial.print("Winner Declared: Player ");
+    Serial.println(winnerID);
 
-      winnerDeclared = true;
-      gameStarted = false;
+    beep(1);
 
-      Serial.print("Winner : Player ");
-      Serial.println(winnerID);
+    // STEP 3: Send LOCK to winner
+    sendPacket(LOCK, winnerID);
+    Serial.println("LOCK Sent to winner");
 
-      beep(1);
+    // STEP 4: Wait for NEXT button to reset
+    Serial.println("Waiting for NEXT button...");
+    xSemaphoreTake(nextSemaphore, portMAX_DELAY);
 
-      sendPacket(LOCK,winnerID);
+    // STEP 5: Send RESET only after NEXT button
+    sendPacket(RESET, 0);
+    Serial.println("RESET Sent - All players reset");
+    
+    // Loop back to STEP 1 - wait for START again
+  }
+}
 
-      Serial.println("LOCK Sent");
+//----------------------------------------------------
+void addPeer(uint8_t *mac)
+{
+  esp_now_peer_info_t peerInfo = {};
 
-      xSemaphoreTake(nextSemaphore,portMAX_DELAY);
+  memcpy(peerInfo.peer_addr, mac, 6);
 
-      sendPacket(RESET,0);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
 
-      Serial.println("RESET Sent");
+  if (esp_now_add_peer(&peerInfo) == ESP_OK)
+  {
+    Serial.println("Peer Added");
+  }
+  else
+  {
+    Serial.println("Failed to Add Peer");
   }
 }
 
@@ -150,35 +211,34 @@ void setup()
 {
   Serial.begin(115200);
 
-  pinMode(BUZZER,OUTPUT);
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, LOW);
 
-  pinMode(START_BTN,INPUT_PULLUP);
-  pinMode(NEXT_BTN,INPUT_PULLUP);
+  pinMode(START_BTN, INPUT_PULLUP);
+  pinMode(NEXT_BTN, INPUT_PULLUP);
 
-  attachInterrupt(START_BTN,startISR,FALLING);
-  attachInterrupt(NEXT_BTN,nextISR,FALLING);
+  attachInterrupt(START_BTN, startISR, FALLING);
+  attachInterrupt(NEXT_BTN, nextISR, FALLING);
 
   startSemaphore = xSemaphoreCreateBinary();
   nextSemaphore = xSemaphoreCreateBinary();
 
-  playerQueue = xQueueCreate(5,sizeof(uint8_t));
+  playerQueue = xQueueCreate(6, sizeof(uint8_t));
 
   WiFi.mode(WIFI_STA);
 
-  if(esp_now_init()!=ESP_OK)
+  if (esp_now_init() != ESP_OK)
   {
-      Serial.println("ESP NOW Init Failed");
-      return;
+    Serial.println("ESP-NOW Init Failed");
+    while (1);
   }
 
-  esp_now_peer_info_t peerInfo={};
-
-  memcpy(peerInfo.peer_addr,peerAddress,6);
-
-  peerInfo.channel=0;
-  peerInfo.encrypt=false;
-
-  esp_now_add_peer(&peerInfo);
+  addPeer(player1);
+  addPeer(player2);
+  addPeer(player3);
+  addPeer(player4);
+  addPeer(player5);
+  addPeer(player6);
 
   esp_now_register_recv_cb(OnDataRecv);
 
@@ -188,8 +248,7 @@ void setup()
       4096,
       NULL,
       2,
-      NULL
-  );
+      NULL);
 }
 
 //----------------------------------------------------

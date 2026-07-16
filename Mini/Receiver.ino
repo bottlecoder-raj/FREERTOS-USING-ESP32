@@ -1,9 +1,9 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
-#define RED_LED     18
+#define RED_LED     25
 #define GREEN_LED   19
-#define BUZZER      23
+#define BUZZER      5
 
 SemaphoreHandle_t alertSemaphore;
 
