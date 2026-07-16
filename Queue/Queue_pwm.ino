@@ -16,7 +16,8 @@ void potTask(void *parameter) {
     // The last parameter, portMAX_DELAY means that the task will wait indefinitely until 
     // there is space in the queue for this new item.
     //  If you don’t want it to wait, and want to return immmediately, pass 0 instead.
-    Serial.printf("potTask: Sent pot value %u\n", potValue);
+    Serial.print("potTask: Sent pot value: ");
+    Serial.println(potValue);
     vTaskDelay(100 / portTICK_PERIOD_MS);  // 100ms
   }
 }
